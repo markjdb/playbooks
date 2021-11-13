@@ -1,0 +1,42 @@
+- hosts: localhost
+  become: true
+  become_user: root
+  tasks:
+  - name: Install devtools
+    pkgng: name={{item}}
+    with_items:
+      - tmux
+      - gdb
+      - bash
+      - bash-completion
+      - cscope
+      - sudo
+      - vim
+
+  - name: Create local user
+    user:
+      name: markj
+      shell: /usr/local/bin/bash
+      groups: wheel
+      password: ""
+      update_password: on_create
+
+  - name: Update sudoers
+    copy: src=files/sudoers_wheel dest=/usr/local/etc/sudoers.d/ owner=root group=wheel mode=0440
+
+  - name: Fetch dotfiles
+    become: true
+    become_user: markj
+    block:
+      - name: Clone dotfiles
+        git:
+          repo: 'https://github.com/markjdb/dotfiles'
+          dest: /home/markj/dotfiles
+      - name: Install dotfiles
+        become: true
+        become_user: markj
+        shell: /home/markj/dotfiles/install
+      - name: Make scripts dir
+        file:
+          path: /home/markj/bin/scripts
+          state: directory
